@@ -1,6 +1,6 @@
 // Данный кусочек кода отвечает за внедрения "Шапки", в которой прописаны детали библиотеки
 #include "qmobot.h"
-
+#include <WiFi.h>
 
 // Есть два вида комментариев:
 // 1. Комментарии, которые начинаются и идут на всю линию с "// Comment"
@@ -20,9 +20,10 @@ void setup(){
       /* Нужно ли подключение по последовательному порту? - Да */true
         );
   
-  primer();
-  chat();
-  displayIt("I love QMOBOT");
+  // primer();
+  // chat();
+  // displayIt("I love QMOBOT");
+
 }
 
 // Данная часть кода будет выпонятся постоянно в цикле
@@ -95,8 +96,10 @@ void chat(){
 void displayIt(String t){
   Qchip.display->clear(); // Очистить дисплей от надписей
                           // Пиксели по x,      пиксели по y,     текст
-  Qchip.display->drawString( 0 /*от 0 до 128*/, 0 /*от 0 до 64*/, t); // Написать текст на дисплее
-  Qchip.display->drawString(0, 63, "y");
-  Qchip.display->drawString(127, 0, "x");
+  Qchip.display->drawString( 0 /*от 0 до 128*/, 0 /*от 0 до 64*/, "Failure"); // Написать текст на дисплее
+  Qchip.display->drawString(0, 0, "--------");
+  Qchip.display->drawString(20,20, "Ospan");
   Qchip.display->display(); // Показать на дисплее
 }
+
+
