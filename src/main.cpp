@@ -1,16 +1,23 @@
 // Данный кусочек кода отвечает за внедрения "Шапки", в которой прописаны детали библиотеки
 #include "qmobot.h"
-#include <WiFi.h>
+#include <WiFi.h> // Библиотека по работе с Вай-Фай и интернетом
 
-// Есть два вида комментариев:
-// 1. Комментарии, которые начинаются и идут на всю линию с "// Comment"
-// 2. Комментарии на отрывок, которые идут внутри скобок "/* Comment */"
+// Данные глобальные переменные нужны для функции ленты
+int line = 0;
+String phrases[5] = {"", "", "", "", ""};
 
-// Декларируем все функции, чтобы программа знала, что такие функции есть
-void displayIt(String t); 
-void chat(); 
-int minusSum(int n, int player);
-void primer();
+// Данные переменные хранят имя сети и пароль
+// const char* - особая форма хранения букв, звездочка в конце обозначает строку, а const, что строка не будет меняться.
+const char* ssid = "SSID or name of WiFI";
+const char* password = "Password";
+
+// Мы создаем обьект сервера на порте 80, то есть мы слушаем, что к нам придет на 80-м порте из сети.
+WiFiServer wifiServer(80);
+
+// Декларация функций.
+void displayPhrase(String Phrase);
+void displayLenta(String Phrase);
+void analyze(String command);
 
 // Настройка чипа
 void setup(){
@@ -20,86 +27,109 @@ void setup(){
       /* Нужно ли подключение по последовательному порту? - Да */true
         );
   
-  // primer();
-  // chat();
-  // displayIt("I love QMOBOT");
+  // Данная функция, говорит чипу, что у него есть встроенная LED лампочка и
+  // необходимо перевести ее в режим вывода данных, чтобы включать и выключать
+  pinMode(LED_BUILTIN, OUTPUT);
+
+  // Подключаемся к ВайФай
+  WiFi.begin(ssid, password);
+ 
+  // Пока не подключимся, писать, что мы подключаемся.
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi..");
+  }
+ 
+  // При подключении, написать наш IP адрес.
+  Serial.println("Connected to the WiFi network");
+  Serial.println(WiFi.localIP());
+
+  // Написать наш IP адрес на экране.
+  displayPhrase("");
+ 
+  // Начать слушать 80-й порт.
+  wifiServer.begin();
 
 }
 
 // Данная часть кода будет выпонятся постоянно в цикле
-void loop(){
-    
-}
+void loop() {
+ 
+  // Создавать переменную для каждого клиента сервера
+  WiFiClient client = wifiServer.available();
+ 
+  if (client) {
+ 
+    while (client.connected()) {
+      
+      String Phrase = "";
 
-// Создаем функцию чата:
-// Qchip умеет не только писать что-то в вывод последовательного порта,
-// но может и считывать оттуда, то есть мы можем написать некий чат.
-
-// Рекурсивная функция, которая возращает сумму обратной прогрессии до нуля
-// minusSum(5) = 4 + 3 + 2 + 1 + 0 = 10
-
-int minusSum(int n, int player){
-  Serial.print("Я игрок №");
-  Serial.println(player);
-  Serial.print("Мне пришла цифра: ");
-  Serial.println(n);
-  if(n>0){
-    Serial.println("Моя цифра больше нуля");
-    Serial.print("Я отправляю игроку ниже цифру: ");
-    Serial.println(n-1);
-    Serial.println();
-    n = n - 1 + minusSum(n-1, player + 1);
-  }else{
-    Serial.println("Моя цифра меньше нуля");
-    Serial.println();
-    n =  0;
-  }
-  Serial.print(player);
-  Serial.print(" возвращает ");
-  Serial.println(n);
-  Serial.println();
-  return n;
-}
-
-void primer(){
-  Serial.println("====================================");
-  Serial.println("Пример с 6-ю игроками:");
-  int summ = minusSum(6, 0);
-  Serial.println("====================================");
-  Serial.println();
-}
-
-void chat(){
-  Serial.println();
-  Serial.println("Функция обратной прогрессии: ");
-  Serial.println();
-
-  while(true){
-    Serial.print("Введите число: ");
-    String value;
-    while(Serial.available() == 0) {}
-    while(Serial.available()){
-      value = Serial.readString();
-      Serial.print("Рекурсия до ");
-      int ba = value.toInt();
-      Serial.print(ba);
-      Serial.print(": ");
-      Serial.println("====================================");
-      Serial.println(minusSum(ba, 0));
-      Serial.println("====================================");
+      while (client.available()>0) {
+        char c = client.read();
+        client.write(c);
+        if(c!='\n' && isPrintable(c)){
+          Phrase += c;
+        }
+      }
+      if(Phrase != ""){
+        displayPhrase(Phrase);
+        // displayLenta(Phrase);
+        Serial.print("Phrase is: ");
+        Serial.println(Phrase);
+        delay(10);
+      }
+      if(Phrase == "Bye"){
+        client.stop();
+        displayPhrase("Bye-bye!");
+        Serial.print("Bye-Bye!");
+        Serial.println(Phrase);
+        delay(10);
+      }
+      analyze(Phrase);
     }
 
-    break; // Закрытие цикла не через условие осуществляется с помощью break
+    client.stop();
+    Serial.println("Client disconnected");
+ 
   }
 }
 
-void displayIt(String t){
+
+void displayPhrase(String Phrase){
   Qchip.display->clear(); // Очистить дисплей от надписей
                           // Пиксели по x,      пиксели по y,     текст
-  Qchip.display->drawString( 0 /*от 0 до 128*/, 0 /*от 0 до 64*/, "Failure"); // Написать текст на дисплее
-  Qchip.display->drawString(0, 0, "--------");
-  Qchip.display->drawString(20,20, "Ospan");
+  Qchip.display->drawString( 0 /*от 0 до 128*/, 0 /*от 0 до 64*/, (WiFi.localIP().toString()+":80")); // Написать текст на дисплее
+  Qchip.display->drawString( 0 /*от 0 до 128*/, 30 /*от 0 до 64*/, Phrase); // Написать текст на дисплее
   Qchip.display->display(); // Показать на дисплее
 }
 
+void displayLenta(String Phrase){
+  if(line<4){
+    Qchip.display->drawString( 0 , (line*10 + 10), Phrase);
+    line++;
+    phrases[line] = Phrase;
+  }
+  else{
+    Qchip.display->clear(); 
+    for(int i = 0; i<=4; i++){
+      if(i==4){
+        phrases[i] = Phrase;
+      }
+      else{
+        phrases[i] = phrases[i+1];
+      }
+      Qchip.display->drawString(0, (i*10 + 10), phrases[i]);
+    }
+  }
+  Qchip.display->drawString( 0, 0, (WiFi.localIP().toString()+":80"));
+  Qchip.display->display();
+}
 
+void analyze(String command){
+  if(command == "On"){
+    digitalWrite(LED_BUILTIN, HIGH);
+  }
+  if(command == "Off"){
+    digitalWrite(LED_BUILTIN, LOW);
+  }
+}
